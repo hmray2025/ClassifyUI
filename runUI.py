@@ -15,7 +15,7 @@ class ImageClassifierApp(QMainWindow):
         self.setGeometry(50, 50, 1500, 800)
         # self.showFullScreen()
 
-        self.image_dir_base = "C:/Users/hunte/Documents/Research/RINAO/ClassifyUI/pics"
+        self.image_dir_base = "./pics"
         self.image_dir = ""
         self.image_files = []
         self.current_index = -1
@@ -248,7 +248,12 @@ class ImageClassifierApp(QMainWindow):
             total = len(self.classifications.items())
             correct = sum(1 for image, classification in self.classifications.items() if truth_data.get(image) == classification)
             accuracy = (correct / total) * 100 if total > 0 else 0
-            totalMonies = correctAward*correct-(total-correct)*incorrectPenalty
+            ## Round the total monies available to 2 decimal places and add a zero if it is less than 1
+            ## This is to prevent the display of 0.5 as 0.50
+            totalMonies = round(correctAward*correct-(total-correct)*incorrectPenalty, 2)
+            if totalMonies < 0:
+                totalMonies = 0.00
+            totalMonies = "{:.2f}".format(totalMonies)
 
             QMessageBox.information(self, "Grading Results", f"Accuracy: {accuracy:.2f}%\
                                     \nCorrect: {correct}/{total}\
