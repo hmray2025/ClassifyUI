@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 import os
 import csv
-
+import random
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -15,9 +15,10 @@ class ImageClassifierApp(QMainWindow):
         self.setGeometry(50, 50, 1500, 800)
         # self.showFullScreen()
 
-        self.image_dir_base = "./pics"
+        self.image_dir_base = "./pics_NEW"
         self.image_dir = ""
         self.image_files = []
+        self.orig_image_files = []
         self.current_index = -1
         self.classifications = {}
         self.previous_index = None
@@ -117,7 +118,7 @@ class ImageClassifierApp(QMainWindow):
         self.undo_button.clicked.connect(self.undo_classification)
         self.undo_button.setEnabled(False)
 
-        self.instructions_label = QLabel("Is there a person in this image?")
+        self.instructions_label = QLabel("Is there a cone in this image?")
         self.instructions_label.setStyleSheet("font-size: 18px; padding-bottom: 60px")
         self.instructions_label.setAlignment(Qt.AlignCenter)
 
@@ -156,7 +157,13 @@ class ImageClassifierApp(QMainWindow):
 
         if self.image_dir:
             self.image_files = [f for f in os.listdir(self.image_dir) if f.lower().endswith(('png', 'jpg', 'jpeg', 'bmp', 'gif'))]
-            self.image_files.sort()
+
+            # Store the original order of images
+            self.orig_image_files = self.image_files.copy()
+
+            # Randomize the order of images
+            random.shuffle(self.image_files)
+
 
             if not self.image_files:
                 QMessageBox.warning(self, "No Images", "No image files found in the selected directory.")
@@ -184,6 +191,8 @@ class ImageClassifierApp(QMainWindow):
             self.image_label.setText("No Image Loaded")
 
     def classify_image(self, classification):
+
+        ## This is where we can randomize the image order
         if 0 <= self.current_index < len(self.image_files):
             file_name = self.image_files[self.current_index]
             self.classifications[file_name] = classification
@@ -244,7 +253,8 @@ class ImageClassifierApp(QMainWindow):
                 reader = csv.reader(file)
                 next(reader)  # Skip header
                 truth_data = {rows[0]: int(rows[1]) for rows in reader}
-
+            ## This is where we can classify which images are correct
+            ## and which are incorrect
             total = len(self.classifications.items())
             correct = sum(1 for image, classification in self.classifications.items() if truth_data.get(image) == classification)
             accuracy = (correct / total) * 100 if total > 0 else 0
@@ -254,7 +264,6 @@ class ImageClassifierApp(QMainWindow):
             if totalMonies < 0:
                 totalMonies = 0.00
             totalMonies = "{:.2f}".format(totalMonies)
-
             QMessageBox.information(self, "Grading Results", f"Accuracy: {accuracy:.2f}%\
                                     \nCorrect: {correct}/{total}\
                                     \n Extra Money: ${totalMonies}")
