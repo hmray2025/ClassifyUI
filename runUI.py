@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QTimer
 import os
 import csv
 import random
@@ -23,6 +24,9 @@ class ImageClassifierApp(QMainWindow):
         self.classifications = {}
         self.previous_index = None
         self.total_count = 0
+        self.timer = QTimer()
+        self.time = 0 # In seconds
+        self.timer_running = False
         self.init_ui()
 
     def init_ui(self):
@@ -63,7 +67,7 @@ class ImageClassifierApp(QMainWindow):
         self.image_label = QLabel("No Image Loaded")
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setStyleSheet("border: 1px solid black;")
-        self.image_label.setFixedHeight(900)
+        self.image_label.setFixedHeight(1500)
 
         # Sidebar section
         sidebar = QVBoxLayout()
@@ -122,15 +126,47 @@ class ImageClassifierApp(QMainWindow):
         self.instructions_label.setStyleSheet("font-size: 18px; padding-bottom: 60px")
         self.instructions_label.setAlignment(Qt.AlignCenter)
 
-        self.classified_count_label = QLabel("Classified: 0")
+        self.classified_count_label = QLabel("Classified Images: 0")
         self.classified_count_label.setStyleSheet("font-size: 18px; padding-bottom: 30px")
         self.classified_count_label.setAlignment(Qt.AlignCenter)
 
+        # Timer section
+        self.timer_label = QLabel("00:00")
+        self.timer_label.setStyleSheet("font-size: 24px; padding: 10px;")
+        self.timer_label.setAlignment(Qt.AlignCenter)
+        
+        timer_buttons_layout = QHBoxLayout()
+        
+        self.start_timer_button = QPushButton("Start")
+        self.start_timer_button.setFixedSize(95, 30)
+        self.start_timer_button.clicked.connect(self.start_timer)
+        
+        self.pause_timer_button = QPushButton("Pause")
+        self.pause_timer_button.setFixedSize(95, 30)
+        self.pause_timer_button.clicked.connect(self.pause_timer)
+        self.pause_timer_button.setEnabled(False)
+        
+        self.stop_timer_button = QPushButton("Stop")
+        self.stop_timer_button.setFixedSize(95, 30)
+        self.stop_timer_button.clicked.connect(self.stop_timer)
+        self.stop_timer_button.setEnabled(False)
+        
+        timer_buttons_layout.addWidget(self.start_timer_button)
+        timer_buttons_layout.addWidget(self.pause_timer_button)
+        timer_buttons_layout.addWidget(self.stop_timer_button)
+        
+        
+        
+        # Add existing instruction label and other components after this
         sidebar.addWidget(self.instructions_label)
         sidebar.addWidget(self.classified_count_label)
         sidebar.addWidget(self.classify_yes_button)
         sidebar.addWidget(self.classify_no_button)
         sidebar.addWidget(self.undo_button)
+
+        # Add timer components to sidebar
+        sidebar.addWidget(self.timer_label)
+        sidebar.addLayout(timer_buttons_layout)
 
         # sidebar.setSpacing(10)
         # sidebar.setContentsMargins(10, 10, 10, 10)
@@ -221,7 +257,7 @@ class ImageClassifierApp(QMainWindow):
 
     def update_classified_count(self):
         classified_count = len(self.classifications)
-        self.classified_count_label.setText(f"Classified: {classified_count}")
+        self.classified_count_label.setText(f"Classified Images: {classified_count}")
 
     def save_results(self):
         save_path, _ = QFileDialog.getSaveFileName(self, "Save Results", "", "CSV Files (*.csv)")
@@ -270,6 +306,40 @@ class ImageClassifierApp(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while grading results: {e}")
+
+    def start_timer(self):
+        if not self.timer_running:
+            try:
+                self.timer.timeout.disconnect()
+            except TypeError:
+                pass
+            self.timer.timeout.connect(self.update_timer)
+            self.timer.start(1000)  # Update every second
+            self.timer_running = True
+            self.start_timer_button.setEnabled(False)
+            self.pause_timer_button.setEnabled(True)
+            self.stop_timer_button.setEnabled(True)
+    
+    def pause_timer(self):
+        self.timer.stop()
+        self.timer_running = False
+        self.start_timer_button.setEnabled(True)
+        self.pause_timer_button.setEnabled(False)
+    
+    def stop_timer(self):
+        self.timer.stop()
+        self.timer_running = False
+        self.time = 0
+        self.timer_label.setText("00:00")
+        self.start_timer_button.setEnabled(True)
+        self.pause_timer_button.setEnabled(False)
+        self.stop_timer_button.setEnabled(False)
+    
+    def update_timer(self):
+        self.time += 1
+        minutes = (self.time % 3600) // 60
+        seconds = self.time % 60
+        self.timer_label.setText(f"{minutes:02d}:{seconds:02d}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
