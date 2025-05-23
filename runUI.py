@@ -25,7 +25,7 @@ class ImageClassifierApp(QMainWindow):
         self.previous_index = None
         self.total_count = 0
         self.timer = QTimer()
-        self.time = 0 # In seconds
+        self.time = 1200 # In seconds
         self.timer_running = False
         self.init_ui()
 
@@ -131,7 +131,7 @@ class ImageClassifierApp(QMainWindow):
         self.classified_count_label.setAlignment(Qt.AlignCenter)
 
         # Timer section
-        self.timer_label = QLabel("00:00")
+        self.timer_label = QLabel("20:00")
         self.timer_label.setStyleSheet("font-size: 24px; padding: 10px;")
         self.timer_label.setAlignment(Qt.AlignCenter)
         
@@ -329,17 +329,27 @@ class ImageClassifierApp(QMainWindow):
     def stop_timer(self):
         self.timer.stop()
         self.timer_running = False
-        self.time = 0
-        self.timer_label.setText("00:00")
-        self.start_timer_button.setEnabled(True)
-        self.pause_timer_button.setEnabled(False)
-        self.stop_timer_button.setEnabled(False)
-    
-    def update_timer(self):
-        self.time += 1
+        self.time = 1200  # Reset to 20 minutes
         minutes = (self.time % 3600) // 60
         seconds = self.time % 60
         self.timer_label.setText(f"{minutes:02d}:{seconds:02d}")
+        self.start_timer_button.setEnabled(True)
+        self.pause_timer_button.setEnabled(False)
+        self.stop_timer_button.setEnabled(False)
+        self.timer_label.setStyleSheet("font-size: 24px; padding: 10px;")
+    
+    def update_timer(self):
+        self.time -= 1
+        minutes = (self.time % 3600) // 60
+        seconds = self.time % 60
+        self.timer_label.setText(f"{minutes:02d}:{seconds:02d}")
+        if self.time <= 300:
+            self.timer_label.setStyleSheet("color: red; font-size: 24px; padding: 10px;")
+        if self.time <= 0:
+            self.stop_timer()
+            QMessageBox.warning(self, "Time's Up!")
+
+            
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
