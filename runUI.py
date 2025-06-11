@@ -347,7 +347,7 @@ class ImageClassifierApp(QMainWindow):
             self.timer_label.setStyleSheet("color: red; font-size: 24px; padding: 10px;")
         if self.time <= 0:
             self.stop_timer()
-            QMessageBox.warning(self, "Time's Up!")
+            QMessageBox.warning(self, " ", " Time's Up!")
 
             
 
