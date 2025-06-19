@@ -4,17 +4,16 @@ from PyQt5.QtWidgets import (
     QLabel, QPushButton, QFileDialog, QMessageBox, QMenuBar, QAction
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import Qt, QTimer
 import os
 import csv
 import random
+
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image Classifier")
         self.setGeometry(50, 50, 1500, 800)
-        # self.showFullScreen()
 
         self.image_dir_base = "./pics_NEW"
         self.image_dir = ""
@@ -58,7 +57,7 @@ class ImageClassifierApp(QMainWindow):
         self.title_label = QLabel("Image Classifier")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setStyleSheet("font-size: 20px; font-weight: bold; padding: 5px;")
-        self.title_label.setFixedHeight(35)  # Adjust to 5% of a typical 600px window height
+        self.title_label.setFixedHeight(35)
 
         # Main content section
         content_layout = QHBoxLayout()
@@ -74,7 +73,6 @@ class ImageClassifierApp(QMainWindow):
 
         self.classify_yes_button = QPushButton("✔")
         self.classify_yes_button.setFixedSize(300, 100)
-        # self.classify_yes_button.setStyleSheet("font-size: 24px; border: 1px solid green; background-color: white; border-radius: 5px")
         self.classify_yes_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50; /* Green */
@@ -96,7 +94,6 @@ class ImageClassifierApp(QMainWindow):
 
         self.classify_no_button = QPushButton("✘")
         self.classify_no_button.setFixedSize(300, 100)
-        # self.classify_no_button.setStyleSheet("font-size: 24px")
         self.classify_no_button.setStyleSheet("""
             QPushButton {
                 background-color: #f05656;
@@ -155,8 +152,6 @@ class ImageClassifierApp(QMainWindow):
         timer_buttons_layout.addWidget(self.pause_timer_button)
         timer_buttons_layout.addWidget(self.stop_timer_button)
         
-        
-        
         # Add existing instruction label and other components after this
         sidebar.addWidget(self.instructions_label)
         sidebar.addWidget(self.classified_count_label)
@@ -168,16 +163,12 @@ class ImageClassifierApp(QMainWindow):
         sidebar.addWidget(self.timer_label)
         sidebar.addLayout(timer_buttons_layout)
 
-        # sidebar.setSpacing(10)
-        # sidebar.setContentsMargins(10, 10, 10, 10)
         sidebar.setAlignment(Qt.AlignVCenter)
 
         # Setup Alignment
         content_layout.addWidget(self.image_label, 5)
         content_layout.addLayout(sidebar, 1)
         content_layout.setAlignment(Qt.AlignCenter)
-
-        # content_layout.setStretch(0, 5)
 
         main_layout.addWidget(self.title_label)
         main_layout.addLayout(content_layout)
@@ -200,7 +191,6 @@ class ImageClassifierApp(QMainWindow):
             # Randomize the order of images
             random.shuffle(self.image_files)
 
-
             if not self.image_files:
                 QMessageBox.warning(self, "No Images", "No image files found in the selected directory.")
                 return
@@ -213,7 +203,7 @@ class ImageClassifierApp(QMainWindow):
             self.classify_no_button.setEnabled(True)
             self.total_count = len(self.image_files)
 
-    def quickload_images(self,):
+    def quickload_images(self):
         self.load_images(" ")
 
     def display_image(self, index):
@@ -221,19 +211,22 @@ class ImageClassifierApp(QMainWindow):
             self.current_index = index
             image_path = os.path.join(self.image_dir, self.image_files[index])
             pixmap = QPixmap(image_path)
+            # Process events to ensure UI updates, including timer
+            QApplication.processEvents()
             self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
         else:
             self.image_label.clear()
             self.image_label.setText("No Image Loaded")
 
     def classify_image(self, classification):
-
-        ## This is where we can randomize the image order
         if 0 <= self.current_index < len(self.image_files):
             file_name = self.image_files[self.current_index]
             self.classifications[file_name] = classification
             self.previous_index = self.current_index
             self.update_classified_count()
+
+            # Force UI update before moving to next image
+            QApplication.processEvents()
 
             # Automatically move to the next image
             if self.current_index + 1 < len(self.image_files):
@@ -289,13 +282,11 @@ class ImageClassifierApp(QMainWindow):
                 reader = csv.reader(file)
                 next(reader)  # Skip header
                 truth_data = {rows[0]: int(rows[1]) for rows in reader}
-            ## This is where we can classify which images are correct
-            ## and which are incorrect
+            
             total = len(self.classifications.items())
             correct = sum(1 for image, classification in self.classifications.items() if truth_data.get(image) == classification)
             accuracy = (correct / total) * 100 if total > 0 else 0
-            ## Round the total monies available to 2 decimal places and add a zero if it is less than 1
-            ## This is to prevent the display of 0.5 as 0.50
+            
             totalMonies = round(correctAward*correct-(total-correct)*incorrectPenalty, 2)
             if totalMonies < 0:
                 totalMonies = 0.00
@@ -309,11 +300,14 @@ class ImageClassifierApp(QMainWindow):
 
     def start_timer(self):
         if not self.timer_running:
+            # Disconnect any existing connections to prevent duplicates
             try:
                 self.timer.timeout.disconnect()
             except TypeError:
                 pass
-            self.timer.timeout.connect(self.update_timer)
+            
+            # Set up the timer with proper Qt.QueuedConnection for better UI responsiveness
+            self.timer.timeout.connect(self.update_timer, Qt.QueuedConnection)
             self.timer.start(1000)  # Update every second
             self.timer_running = True
             self.start_timer_button.setEnabled(False)
@@ -343,13 +337,15 @@ class ImageClassifierApp(QMainWindow):
         minutes = (self.time % 3600) // 60
         seconds = self.time % 60
         self.timer_label.setText(f"{minutes:02d}:{seconds:02d}")
+        
+        # Force immediate UI update for timer
+        self.timer_label.repaint()
+        
         if self.time <= 300:
             self.timer_label.setStyleSheet("color: red; font-size: 24px; padding: 10px;")
         if self.time <= 0:
             self.stop_timer()
             QMessageBox.warning(self, " ", " Time's Up!")
-
-            
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
